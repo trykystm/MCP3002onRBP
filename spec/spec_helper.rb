@@ -1,29 +1,20 @@
 # frozen_string_literal: true
 
-# PiPiper がインストールされていない環境でもテストできるようにモッククラスを定義
-module PiPiper
-  class Spi
-    CHIP_SELECT_0 = 0
-    CHIP_SELECT_1 = 1
+begin
+  require 'spi'
+rescue LoadError
+  # spi gem がインストールされていない開発環境（Windows等）でもテストできるようにスタブクラスを定義
+  class SPI
+    attr_accessor :speed
 
-    def self.begin(_chip)
-      yield new
-    end
+    def initialize(device:); end
 
-    def write(*_args)
-      [0, 0]
+    def xfer(txdata:)
+      "\x00" * txdata.bytesize
     end
   end
-end
 
-require 'bundler'
-
-# Bundler.setup / Bundler.require のエラーを回避するためのスタブ
-module Bundler
-  class << self
-    def setup; end
-    def require(*_args); end
-  end
+  $LOADED_FEATURES << 'spi.rb'
 end
 
 require_relative '../mcp3002'
