@@ -1,28 +1,11 @@
 # frozen_string_literal: true
 
-# PiPiper がインストールされていない環境でもテストできるようにモッククラスを定義
-module PiPiper
-  class Spi
-    CHIP_SELECT_0 = 0
-    CHIP_SELECT_1 = 1
-
-    def self.begin(_chip)
-      yield new
+# Windows など IO#ioctl が標準で提供されない環境で RSpec のモック検証を通すための定義
+unless IO.method_defined?(:ioctl)
+  class IO
+    def ioctl(_cmd, _arg)
+      0
     end
-
-    def write(*_args)
-      [0, 0]
-    end
-  end
-end
-
-require 'bundler'
-
-# Bundler.setup / Bundler.require のエラーを回避するためのスタブ
-module Bundler
-  class << self
-    def setup; end
-    def require(*_args); end
   end
 end
 

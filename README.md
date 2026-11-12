@@ -1,20 +1,22 @@
 # MCP3002 on Raspberry Pi
 
 Raspberry Pi 上で SPI 接続された 10-bit A/D コンバータ **MCP3002** を制御するための Ruby スクリプト・ライブラリです。  
+外部 Gem に依存せず、Ruby 標準ライブラリ（`IO#ioctl` / `Fiddle`）のみで Linux カーネル標準の SPI ドライバ（`/dev/spidev0.x`）と直接全二重通信を行います。
+
 シングルエンド（Single-ended）入力および擬似差動（Pseudo-Differential）入力によるアナログ電圧のデジタル読み取り（0〜1023）に対応しています。
 
 ---
 
 ## 前提条件
 
-- Raspberry Pi (Raspberry Pi OS)
-- Ruby 3.x / 4.x
-- `pi_piper` gem
+- Raspberry Pi (Raspberry Pi OS - Pi 3 / 4 / 5、32bit / 64bit 対応)
+- Ruby 3.x / 4.x（外部 Gem のインストールは不要です）
 - Raspberry Pi の SPI インターフェースが有効化されていること
   ```bash
   sudo raspi-config
   # [Interface Options] -> [SPI] -> 有効化 (Yes)
   ```
+  ※ 一般ユーザーで実行する場合は、ユーザーが `spi` グループに所属している必要があります（デフォルトの `pi` ユーザー等は通常設定済みです）。
 
 ---
 
@@ -33,59 +35,53 @@ MCP3002 と Raspberry Pi のピン接続対応表です。
 | 7 | CLK | GPIO 11 (Pin 23 / SPI0 SCLK) | クロック |
 | 8 | $\text{V}_{\text{DD}}\text{/V}_{\text{REF}}$ | 3.3V (Pin 1 等) | 電源 / 基準電圧 |
 
-※ CE1 (GPIO 7 / Pin 26) を使用する場合は、初期化時に `MCP3002::CE1` を指定してください。
-
----
-
-## インストール・環境設定
-
-### 依存 Gem のインストール
-
-```bash
-gem install pi_piper
-```
-
-Bundler を使用する場合は `Gemfile` に以下を記述して `bundle install` を実行してください：
-
-```ruby
-source 'https://rubygems.org'
-gem 'pi_piper'
-```
+※ CE1 (GPIO 7 / Pin 26) を使用する場合は、初期化時に `MCP3002::CE1`（または `1`）を指定してください。
 
 ---
 
 ## 使い方
 
+外部 Gem のインストールは不要です。Ruby が導入されていればそのまま実行できます。
+
 ### 1. ライブラリとして使用する場合
 
+#### ブロック構文を使用（推奨: 自動クローズ）
 ```ruby
 require_relative 'mcp3002'
 
-# インスタンス作成（デフォルトは CE0）
-# CE1 を使用する場合は MCP3002.new(MCP3002::CE1)
+# CE0 (デフォルト) を使用
+MCP3002.open do |adc|
+  val_ch0 = adc.single # デフォルトは CH0 (0〜1023)
+  puts "CH0: #{val_ch0}"
+
+  # 電圧換算例 (基準電圧 3.3V の場合)
+  voltage = (val_ch0 / 1023.0) * 3.3
+  puts "Voltage: #{voltage.round(2)} V"
+end
+```
+
+#### 通常のインスタンス生成
+```ruby
+require_relative 'mcp3002'
+
+# インスタンス作成（デフォルトは CE0: '/dev/spidev0.0'）
+# CE1 を使用する場合は MCP3002.new(MCP3002::CE1) または MCP3002.new(1)
 adc = MCP3002.new
 
 # --- シングルエンド（Single-ended）モード ---
-# CH0 の読み取り（デフォルト引数は CH0）
-val_ch0 = adc.single(MCP3002::CH0) # 0〜1023
+val_ch0 = adc.single(MCP3002::CH0)
 puts "CH0: #{val_ch0}"
 
-# CH1 の読み取り
 val_ch1 = adc.single(MCP3002::CH1)
 puts "CH1: #{val_ch1}"
 
-# 電圧値（V）への換算例（電源電圧 3.3V の場合）
-voltage = (val_ch0 / 1023.0) * 3.3
-puts "Voltage: #{voltage.round(2)} V"
-
 # --- 差動（Pseudo-Differential）モード ---
-# CH0 を (+) 、CH1 を (-) として測定（デフォルト引数は DIFF_CH0）
+# CH0 を (+) 、CH1 を (-) として測定
 diff_ch0 = adc.differential(MCP3002::DIFF_CH0)
 puts "Differential (CH0+ / CH1-): #{diff_ch0}"
 
-# CH1 を (+) 、CH0 を (-) として測定
-diff_ch1 = adc.differential(MCP3002::DIFF_CH1)
-puts "Differential (CH1+ / CH0-): #{diff_ch1}"
+# 終了時はクローズ
+adc.close
 ```
 
 ### 2. サンプルスクリプトを直接実行する場合
@@ -100,10 +96,10 @@ ruby mcp3002.rb
 
 ## 定数一覧
 
-| 定数名 | 値 | 説明 |
+| 定数名 | デフォルト値 | 説明 |
 |---|---|---|
-| `CE0` | `CHIP_SELECT_0` | SPI チップセレクト 0 |
-| `CE1` | `CHIP_SELECT_1` | SPI チップセレクト 1 |
+| `CE0` | `'/dev/spidev0.0'` | SPI チップセレクト 0 デバイスパス |
+| `CE1` | `'/dev/spidev0.1'` | SPI チップセレクト 1 デバイスパス |
 | `CH0` | `0b01101000` | シングルエンド CH0 読み取りコマンド |
 | `CH1` | `0b01111000` | シングルエンド CH1 読み取りコマンド |
 | `DIFF_CH0` | `0b01001000` | 差動モード（IN+ = CH0, IN- = CH1）コマンド |
@@ -113,7 +109,7 @@ ruby mcp3002.rb
 
 ## テストの実行
 
-RSpec を使用して単体テストを実行できます（SPI 通信部はモック化されているため、PC 上でも実行可能です）。
+RSpec を使用して単体テストを実行できます（SPI ioctl 通信部はモック化されているため、PC 上でも実行可能です）。
 
 ```bash
 rspec
