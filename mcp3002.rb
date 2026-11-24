@@ -1,5 +1,7 @@
+#!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'bundler/setup'
 require 'spi'
 
 # Raspberry Pi 上の MCP3002 (10-bit A/D コンバータ) を制御するクラス

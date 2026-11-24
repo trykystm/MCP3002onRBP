@@ -44,15 +44,17 @@ MCP3002 と Raspberry Pi のピン接続対応表です。
 
 ### 依存 Gem のインストール
 
+Bundler を使用して依存 Gem（`spi`, `rspec`, `rubocop`）をインストールします：
+
 ```bash
-gem install spi
+bundle install
 ```
 
-Bundler を使用する場合は `Gemfile` に以下を記述して `bundle install` を実行してください：
+※ Raspberry Pi 実機で開発・テスト用 Gem（`rspec`, `rubocop`）を除外してインストールする場合は以下を実行してください：
 
-```ruby
-source 'https://rubygems.org'
-gem 'spi'
+```bash
+bundle config set --local without 'development test'
+bundle install
 ```
 
 ---
@@ -93,10 +95,12 @@ puts "Differential (CH1+ / CH0-): #{diff_ch1}"
 
 ### 2. サンプルスクリプトを直接実行する場合
 
-`mcp3002.rb` を直接実行すると、CH0 の値を 1 秒おきに 10 回読み取って表示します。
+`mcp3002.rb` を直接実行すると、CH0 の値を 1 秒おきに 10 回読み取って表示します。  
+ファイル先頭にシェバン（`#!/usr/bin/env ruby`）と `require 'bundler/setup'` を記述しているため、`ruby` や `bundle exec` を省略して直接実行できます。
 
 ```bash
-ruby mcp3002.rb
+chmod +x mcp3002.rb # 実行権限がない場合のみ
+./mcp3002.rb
 ```
 
 ---
@@ -119,5 +123,5 @@ ruby mcp3002.rb
 RSpec を使用して単体テストを実行できます（SPI 通信部はモック化されているため、PC 上でも実行可能です）。
 
 ```bash
-rspec
+bundle exec rspec
 ```

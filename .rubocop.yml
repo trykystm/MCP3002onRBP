@@ -12,7 +12,8 @@ Layout/IndentationStyle:
   EnforcedStyle: spaces
 
 Layout/EndOfLine:
-  Enabled: false
+  Enabled: true
+  EnforcedStyle: lf
 
 Naming/MethodParameterName:
   AllowedNames:
