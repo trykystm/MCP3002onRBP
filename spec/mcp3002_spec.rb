@@ -21,6 +21,11 @@ RSpec.describe MCP3002 do
       expect(described_class::DIFF_CH0).to eq(0b01001000)
       expect(described_class::DIFF_CH1).to eq(0b01011000)
     end
+
+    it 'spi gem 互換用の File.exists? が利用可能であること' do
+      expect(File.respond_to?(:exists?)).to be true
+      expect(File.method(:exists?).call(__FILE__)).to be true
+    end
   end
 
   describe '#initialize' do
@@ -56,50 +61,50 @@ RSpec.describe MCP3002 do
 
   describe '#single' do
     it 'デフォルト引数で CH0 を指定して SPI 通信を行うこと' do
-      expected_tx = [described_class::CH0, 0].pack('C*')
-      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return("\x00\x00".b)
+      expected_tx = [described_class::CH0, 0]
+      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return([0, 0])
       mcp3002.single
     end
 
     it 'CH1 を指定して SPI 通信を行うこと' do
-      expected_tx = [described_class::CH1, 0].pack('C*')
-      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return("\x00\x00".b)
+      expected_tx = [described_class::CH1, 0]
+      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return([0, 0])
       mcp3002.single(described_class::CH1)
     end
 
     it 'SPI から受信した生データを10ビット整数値に変換して返すこと' do
-      allow(spi_mock).to receive(:xfer).and_return([0b00000011, 0b11111111].pack('C*'))
+      allow(spi_mock).to receive(:xfer).and_return([0b00000011, 0b11111111])
       expect(mcp3002.single).to eq(1023)
 
-      allow(spi_mock).to receive(:xfer).and_return([0b00000010, 0b00000000].pack('C*'))
+      allow(spi_mock).to receive(:xfer).and_return([0b00000010, 0b00000000])
       expect(mcp3002.single).to eq(512)
 
-      allow(spi_mock).to receive(:xfer).and_return("\x00\x00".b)
+      allow(spi_mock).to receive(:xfer).and_return([0, 0])
       expect(mcp3002.single).to eq(0)
     end
   end
 
   describe '#differential' do
     it 'デフォルト引数で DIFF_CH0 を指定して SPI 通信を行うこと' do
-      expected_tx = [described_class::DIFF_CH0, 0].pack('C*')
-      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return("\x00\x00".b)
+      expected_tx = [described_class::DIFF_CH0, 0]
+      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return([0, 0])
       mcp3002.differential
     end
 
     it 'DIFF_CH1 を指定して SPI 通信を行うこと' do
-      expected_tx = [described_class::DIFF_CH1, 0].pack('C*')
-      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return("\x00\x00".b)
+      expected_tx = [described_class::DIFF_CH1, 0]
+      expect(spi_mock).to receive(:xfer).with(txdata: expected_tx).and_return([0, 0])
       mcp3002.differential(described_class::DIFF_CH1)
     end
 
     it 'SPI から受信した生データを10ビット整数値に変換して返すこと' do
-      allow(spi_mock).to receive(:xfer).and_return([0b00000011, 0b11111111].pack('C*'))
+      allow(spi_mock).to receive(:xfer).and_return([0b00000011, 0b11111111])
       expect(mcp3002.differential).to eq(1023)
 
-      allow(spi_mock).to receive(:xfer).and_return([0b00000010, 0b00000000].pack('C*'))
+      allow(spi_mock).to receive(:xfer).and_return([0b00000010, 0b00000000])
       expect(mcp3002.differential).to eq(512)
 
-      allow(spi_mock).to receive(:xfer).and_return("\x00\x00".b)
+      allow(spi_mock).to receive(:xfer).and_return([0, 0])
       expect(mcp3002.differential).to eq(0)
     end
   end

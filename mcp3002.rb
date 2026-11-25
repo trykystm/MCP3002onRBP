@@ -4,6 +4,9 @@
 require 'bundler/setup'
 require 'spi'
 
+# spi gem (0.1.1) が Ruby 3.2 以降で削除された File.exists? を呼び出すための互換パッチ
+File.singleton_class.alias_method(:exists?, :exist?) unless File.respond_to?(:exists?)
+
 # Raspberry Pi 上の MCP3002 (10-bit A/D コンバータ) を制御するクラス
 # spi gem を使用して Linux 標準の spidev インターフェースと通信を行います。
 class MCP3002
@@ -49,7 +52,7 @@ class MCP3002
 
   # SPI 全二重通信（Full Duplex transfer）
   def transfer(*bytes)
-    raw = @spi.xfer(txdata: bytes.pack('C*')).bytes
+    raw = @spi.xfer(txdata: bytes)
     ((raw[0] << 8) | raw[1]) & 0x03FF
   end
 end
